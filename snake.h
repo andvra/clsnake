@@ -27,10 +27,10 @@ public:
 
 	void initRandom(int numNodes) {
 		weights.reserve(numNodes);
-		const int maxUniqueNumbers = 100000;
-		auto randomInts = getRandomInts(0, maxUniqueNumbers, numNodes);
 		for (int idx = 0; idx < numNodes; idx++) {
-			weights.push_back(randomInts[idx] / static_cast<float>(maxUniqueNumbers));
+			// -1 <= x <= 1
+			float val = getRandomFloat(-1.0, 1.0);
+			weights.push_back(val);
 		}
 	}
 
@@ -80,10 +80,10 @@ public:
 		return SnakeBrain(hiddenLayers, outputLayer);
 	}
 
-private:
 	std::vector<BrainLayer> hiddenLayers;
 	BrainLayer outputLayer;
 
+private:
 	SnakeBrain(std::vector<BrainLayer> tHiddenLayers, BrainLayer tOutputLayer) {
 		for (auto& t : tHiddenLayers) {
 			hiddenLayers.push_back(t.clone());
@@ -108,9 +108,11 @@ private:
 class Snake {
 
 public:
-	Snake(SnakeBrain* tSnakeBrain, Vec2i tPos, SnakeDirection tDir) {
+	Snake(SnakeBrain* tSnakeBrain, Vec2i tPos) {
 		position = tPos;
-		direction = tDir;
+		direction = SnakeDirection::Down;
+		body.push_back(tPos - Vec2i(0, 2));
+		body.push_back(tPos - Vec2i(0, 1));
 		body.push_back(tPos);
 		isAlive = true;
 		ateLastMove = false;

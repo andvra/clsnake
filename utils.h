@@ -20,8 +20,21 @@ struct Vec2i {
 		return r;
 	}
 
+	Vec2i operator-(const Vec2i& other) {
+		Vec2i r;
+
+		r.x = x - other.x;
+		r.y = y - other.y;
+
+		return r;
+	}
+
 	int manhattanDistance(const Vec2i& other) {
 		return std::abs(x - other.x) + std::abs(y - other.y);
+	}
+
+	std::string toString() {
+		return "(" + std::to_string(x) + ", " + std::to_string(y) + ")";
 	}
 };
 
@@ -30,8 +43,7 @@ bool operator== (const Vec2i& v1, const Vec2i& v2)
 	return (v1.x == v2.x) && (v1.y == v2.y);
 }
 
-std::time_t now = std::time(0);
-boost::random::mt19937 gen{ static_cast<std::uint32_t>(now) };
+boost::random::mt19937 gen;
 
 std::vector<int> getRandomInts(int tMin, int tMax, int tNum) {
 
@@ -49,4 +61,18 @@ std::vector<int> getRandomInts(int tMin, int tMax, int tNum) {
 
 int getRandomInt(int tMin, int tMax) {
 	return getRandomInts(tMin, tMax, 1)[0];
+}
+
+float getRandomFloat(float tMin, float tMax) {
+	const int maxUnique = 1000000;
+	auto intVal = getRandomInt(0, maxUnique);
+
+	float ret = intVal / static_cast<float>(maxUnique);
+
+	// Value is 0 < n < 1, let's scale
+
+	ret *= (tMax - tMin);
+	ret += tMin;
+
+	return ret;
 }

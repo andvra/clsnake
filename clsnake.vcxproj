@@ -116,6 +116,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -142,6 +143,7 @@
     <ClCompile Include="clsnake.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="evolution.h" />
     <ClInclude Include="game.h" />
     <ClInclude Include="snake.h" />
     <ClInclude Include="utils.h" />

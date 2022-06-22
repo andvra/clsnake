@@ -4,10 +4,9 @@
 
 #include "snake.h"
 #include "game.h"
+#include "evolution.h"
 
 #undef main
-
-
 
 int main() 
 { 
@@ -19,7 +18,7 @@ int main()
 	SDL_Window* win = SDL_CreateWindow("SDL Example", // creates a window 
 									SDL_WINDOWPOS_CENTERED, 
 									SDL_WINDOWPOS_CENTERED, 
-									1000, 1000, 0); 
+									1200, 1000, 0); 
 
 	// triggers the program that controls 
 	// your graphics hardware and sets flags 
@@ -28,48 +27,17 @@ int main()
 	// creates a renderer to render our images 
 	SDL_Renderer* rend = SDL_CreateRenderer(win, -1, render_flags); 
 
-	// creates a surface to load an image into the main memory 
-	SDL_Surface* surface; 
-
-	// please provide a path for your image 
-	surface = IMG_Load("C:\\Users\\andre\\Desktop\\urpmeta-uncompressed\\TemplateData\\unity-logo-dark.png"); 
-
-	// loads image to our graphics hardware memory. 
-	SDL_Texture* tex = SDL_CreateTextureFromSurface(rend, surface); 
-
-	// clears main-memory 
-	SDL_FreeSurface(surface); 
-
-	// let us control our image position 
-	// so that we can move it with our keyboard. 
-	SDL_Rect dest; 
-
-	// connects our texture with dest to control position 
-	SDL_QueryTexture(tex, NULL, NULL, &dest.w, &dest.h); 
-
-	// adjust height and width of our image box. 
-	dest.w /= 6; 
-	dest.h /= 6; 
-
-	// sets initial x-position of object 
-	dest.x = (1000 - dest.w) / 2; 
-
-	// sets initial y-position of object 
-	dest.y = (1000 - dest.h) / 2; 
-
-	// controls annimation loop 
 	int close = 0; 
-
-	// speed of box 
-	int speed = 300; 
-
-	const int numSnakeBrains = 20;
+	const int numSnakeBrains = 500;
 	std::vector<SnakeBrain> snakeBrains;
 	std::vector<SnakeBrain> replaySnakeBrains;
 	const int numHiddenLayers = 2;
 	const int hiddenLayerSize = 20;
 	const int outputLayerSize = 3;
 	int numSquares = 30;
+	const int squareSize = 30;
+	const int boardMarginLeft = 150;
+	const int boardMarginTop = 50;
 
 	for (int i = 0; i < numSnakeBrains; i++) {
 		SnakeBrain brain;
@@ -77,142 +45,145 @@ int main()
 		snakeBrains.push_back(brain);
 	}
 
-	int maxScore = 0;
-	int minScore = 100000;
+	const int numGenerations = 5;
+	for (int gen = 0; gen < numGenerations; gen++) {
+		std::vector<std::tuple<int, SnakeBrain*>> brainsWithScore;
 
-	for (auto& brain : snakeBrains) {
-		Game game(numSquares, numSquares);
-		auto score = game.play(&brain);
-		if (score > maxScore) {
-			maxScore = score;
-			replaySnakeBrains.push_back(brain.clone());
+		for (auto& brain : snakeBrains) {
+			Game game(&brain, numSquares, numSquares);
+			auto score = game.play(&brain);
+			//std::cout << "Snake got score " << score << std::endl;
+			brainsWithScore.push_back(std::tuple<int, SnakeBrain*>(score, &brain));
 		}
-		minScore = std::min(minScore, score);
+
+		std::sort(brainsWithScore.begin(), brainsWithScore.end(), [](std::tuple<int, SnakeBrain*> a, std::tuple<int, SnakeBrain*>b) {return std::get<0>(a) > std::get<0>(b); });
+
+		auto bestBrainInGeneration = std::get<1>(brainsWithScore.front());
+
+		std::cout << "Best brain of gen #" << std::to_string(gen + 1) << ": " << std::get<0>(brainsWithScore.front()) << std::endl;
+
+		replaySnakeBrains.push_back(bestBrainInGeneration->clone());
+
+		// Time to evolve!
+		if (gen < numGenerations - 1) {
+			std::vector<SnakeBrain> newSnakeBrains;
+			// Keep the best brain of each generation
+			newSnakeBrains.push_back(bestBrainInGeneration->clone());
+			// TODO: Think of good criteria for a parent
+			int numParents = numSnakeBrains / 20;
+			std::vector<SnakeBrain*> parents;
+			parents.reserve(numParents);
+			for (int i = 0; i < numParents; i++) {
+				parents.push_back(std::get<1>(brainsWithScore[i]));
+			}
+			// Start at one, since we already added the currently best brain to the vector
+			for (int childIdx = 1; childIdx < numSnakeBrains; childIdx++) {
+				auto parentIdx1 = getRandomInt(0, numParents - 1);
+				auto parentIdx2 = getRandomInt(0, numParents - 1);
+				SnakeBrain child = ClSnake::makeChild(parents[parentIdx1], parents[parentIdx2]);
+				newSnakeBrains.push_back(child);
+			}
+			snakeBrains = newSnakeBrains;
+		}
 	}
 
+	Game* game = nullptr;
 
-	// annimation loop 
+	auto lastTimeMs = SDL_GetTicks();
+	const float freezeTimeMs = 2000.0f;
+	auto freezeUntil = 0.0f;
+	auto waitingForRestart = true;
+
+	auto boardPosToRenderRect = [&squareSize, &boardMarginLeft, &boardMarginTop](Vec2i p) {
+		SDL_Rect r;
+		r.x = boardMarginLeft + p.x * squareSize;
+		r.y = boardMarginTop + p.y * squareSize;
+		r.w = squareSize;
+		r.h = squareSize;
+		return r;
+	};
+
 	while (!close) {
-		Snake snake(&replaySnakeBrains.front(), Vec2i(numSquares / 2, numSquares / 2), SnakeDirection::Down);
-		Game game(numSquares, numSquares);
-		game.setupBoard(snake);
-
-		auto lastTimeMs = SDL_GetTicks();
-		bool roundDone = false;
-		// Check for shutdown again..
-		while (!close && !roundDone) {
-
+		if (waitingForRestart) {
+			if (SDL_GetTicks() > freezeUntil) {
+				if (game != nullptr) {
+					delete game;
+				}
+				game = new Game(&replaySnakeBrains.back(), numSquares, numSquares, 150);
+				waitingForRestart = false;
+			}
+		}
+		else {
 			if (SDL_GetTicks() - lastTimeMs > 100) {
-				roundDone = !game.playStep(snake);
+				auto roundDone = !game->playStep();
+				if (roundDone) {
+					waitingForRestart = true;
+					freezeUntil = SDL_GetTicks() + freezeTimeMs;
+				}
 				lastTimeMs = SDL_GetTicks();
 			}
+		}
 
-			SDL_Event event;
+		SDL_Event event;
 
-			// Events mangement 
-			while (SDL_PollEvent(&event)) {
-				switch (event.type) {
+		// Events mangement 
+		while (SDL_PollEvent(&event)) {
+			switch (event.type) {
 
-				case SDL_QUIT:
-					// handling of close button 
+			case SDL_QUIT:
+				// handling of close button 
+				close = 1;
+				break;
+
+			case SDL_KEYDOWN:
+				// keyboard API for key pressed 
+				switch (event.key.keysym.scancode) {
+				case SDL_SCANCODE_ESCAPE:
 					close = 1;
 					break;
-
-				case SDL_KEYDOWN:
-					// keyboard API for key pressed 
-					switch (event.key.keysym.scancode) {
-					case SDL_SCANCODE_W:
-					case SDL_SCANCODE_UP:
-						dest.y -= speed / 30;
-						break;
-					case SDL_SCANCODE_A:
-					case SDL_SCANCODE_LEFT:
-						dest.x -= speed / 30;
-						break;
-					case SDL_SCANCODE_S:
-					case SDL_SCANCODE_DOWN:
-						dest.y += speed / 30;
-						break;
-					case SDL_SCANCODE_D:
-					case SDL_SCANCODE_RIGHT:
-						dest.x += speed / 30;
-						break;
-					case SDL_SCANCODE_ESCAPE:
-						close = 1;
-						break;
-					}
 				}
 			}
+		}
 
-			// right boundary 
-			if (dest.x + dest.w > 1000)
-				dest.x = 1000 - dest.w;
+		SDL_SetRenderDrawColor(rend, 10, 20, 20, 0);
 
-			// left boundary 
-			if (dest.x < 0)
-				dest.x = 0;
+		SDL_RenderClear(rend);
+		SDL_SetRenderDrawColor(rend, 130, 120, 120, 0);
+		for (int col = 0; col < numSquares; col++) {
+			for (int row = 0; row < numSquares; row++) {
+				auto r = boardPosToRenderRect(Vec2i(col, row));
+				SDL_RenderDrawRect(rend, &r);
+			}
+		}
 
-			// bottom boundary 
-			if (dest.y + dest.h > 1000)
-				dest.y = 1000 - dest.h;
-
-			// upper boundary 
-			if (dest.y < 0)
-				dest.y = 0;
-
-			SDL_SetRenderDrawColor(rend, 10, 20, 20, 0);
-
-			// clears the screen 
-			SDL_RenderClear(rend);
-
-			int squareSize = 30;
-			int boardMarginLeft = 50;
-			int boardMarginTop = 10;
-
-			SDL_SetRenderDrawColor(rend, 30, 20, 20, 0);
-			for (int col = 0; col < numSquares; col++) {
-				for (int row = 0; row < numSquares; row++) {
-					SDL_Rect r;
-					r.x = boardMarginLeft + col * squareSize;
-					r.y = boardMarginTop + row * squareSize;
-					r.w = squareSize;
-					r.h = squareSize;
-					SDL_RenderDrawRect(rend, &r);
-				}
+		if (game != nullptr) {
+			if (waitingForRestart) {
+				float t = 1.0f - (freezeUntil - SDL_GetTicks()) / freezeTimeMs;
+				int r = std::lerp(200, 0, t);
+				int g = std::lerp(20, 20, t);
+				int b = std::lerp(180, 180, t);
+				SDL_SetRenderDrawColor(rend, r, g, b, 0);
+			}
+			else {
+				SDL_SetRenderDrawColor(rend, 200, 20, 180, 0);
 			}
 
-			SDL_SetRenderDrawColor(rend, 200, 20, 180, 0);
-			for (auto& sp : snake.body) {
-				SDL_Rect r;
-				r.x = boardMarginLeft + sp.x * squareSize;
-				r.y = boardMarginTop + sp.y * squareSize;
-				r.w = squareSize;
-				r.h = squareSize;
+			for (auto& sp : game->snake->body) {
+				SDL_Rect r = boardPosToRenderRect(sp);
 				SDL_RenderFillRect(rend, &r);
 			}
 
 			SDL_SetRenderDrawColor(rend, 200, 130, 100, 0);
-			SDL_Rect r;
-			auto p = game.getFoodPosition();
-			r.x = boardMarginLeft + p.x * squareSize;
-			r.y = boardMarginTop + p.y * squareSize;
-			r.w = squareSize;
-			r.h = squareSize;
+			SDL_Rect r = boardPosToRenderRect(game->getFoodPosition());
 			SDL_RenderFillRect(rend, &r);
-
-			SDL_RenderCopy(rend, tex, NULL, &dest);
-
-			// triggers the double buffers 
-			// for multiple rendering 
-			SDL_RenderPresent(rend);
-
-			// calculates to 60 fps 
-			SDL_Delay(1000 / 60);
 		}
-	} 
 
-	// destroy texture 
-	SDL_DestroyTexture(tex); 
+		SDL_RenderPresent(rend);
+
+		// calculates to 60 fps 
+		SDL_Delay(1000 / 60);
+	}
+
 
 	// destroy renderer 
 	SDL_DestroyRenderer(rend); 

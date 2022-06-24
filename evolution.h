@@ -20,9 +20,12 @@ namespace ClSnake {
 	// Probability for mutation, on range 0 - 1
 	void mutate(SnakeBrain* brain, float probability) {
 
+		// TODO: Should be mutate bias as well, as we do currently?
 		for (auto& p : brain->perceptrons) {
-			if (getRandomFloat(0.0f, 1.0f) < probability) {
-				p.w= getRandomFloat(-1.0f, 1.0f);
+			for (int i = 0; i < p.w.size(); i++) {
+				if (getRandomFloat(0.0f, 1.0f) < probability) {
+					p.w[i] = getRandomFloat(-1.0f, 1.0f);
+				}
 			}
 			if (getRandomFloat(0.0f, 1.0f) < probability) {
 				p.b = getRandomFloat(-1.0f, 1.0f);

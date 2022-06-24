@@ -1,4 +1,5 @@
 #pragma once
+#include <random>
 
 struct Vec2i {
 	int x;
@@ -43,11 +44,12 @@ bool operator== (const Vec2i& v1, const Vec2i& v2)
 	return (v1.x == v2.x) && (v1.y == v2.y);
 }
 
-boost::random::mt19937 gen;
+std::random_device rd;
+std::mt19937 gen(rd());
 
 std::vector<int> getRandomInts(int tMin, int tMax, int tNum) {
 
-	boost::random::uniform_int_distribution<> dist{ tMin, tMax };
+	std::uniform_int_distribution<> dist(tMin, tMax);
 
 	std::vector<int> vals;
 	vals.reserve(tNum);
@@ -63,16 +65,19 @@ int getRandomInt(int tMin, int tMax) {
 	return getRandomInts(tMin, tMax, 1)[0];
 }
 
+std::vector<float> getRandomFloats(float tMin, float tMax, int tNum) {
+	std::uniform_real_distribution<> dist(tMin, tMax);
+
+	std::vector<float> vals;
+	vals.reserve(tNum);
+
+	for (int i = 0; i < tNum; i++) {
+		vals.push_back(dist(gen));
+	}
+
+	return vals;
+}
+
 float getRandomFloat(float tMin, float tMax) {
-	const int maxUnique = 1000000;
-	auto intVal = getRandomInt(0, maxUnique);
-
-	float ret = intVal / static_cast<float>(maxUnique);
-
-	// Value is 0 < n < 1, let's scale
-
-	ret *= (tMax - tMin);
-	ret += tMin;
-
-	return ret;
+	return getRandomFloats(tMin, tMax, 1)[0];
 }

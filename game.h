@@ -51,11 +51,11 @@ public:
 	// Return true if we should go on
 	// This is used for rendering the snake. Make sure to call setupBoard() before calling this
 	bool playStep(bool isManual, SnakeMove* snakeMove = nullptr, MeasureSquares* measureSquares = nullptr ) {
-		const int timeUnitScore = 5;
-		const int foodScore = 150;
+		const int timeUnitScore = 1;
+		const int foodScore = 500;
 		const int foodTimeAdd = 500;
-		const int crashPenalty = 100;
-		const int timeOutPenalty = 100;
+		const int crashPenalty = 1000;
+		const int timeOutPenalty = 1000;
 
 		auto measurements = measure(snake, measureSquares);
 
@@ -77,7 +77,6 @@ public:
 			return false;
 		}
 		if (snake->position == foodPosition) {
-			std::cout << "Snake ate food at position " << foodPosition.toString() << std::endl;
 			snake->ateLastMove = true;
 			foodPosition = generateFoodPosition();
 			score += foodScore;
@@ -112,12 +111,11 @@ public:
 	}
 
 	Snake* snake = nullptr;
-
+	int score;
+	int timeLeft;
 private:
 	int boardWidth;
 	int boardHeight;
-	int score;
-	int timeLeft;
 	// To make sure to stop the game if the snake is "too good"
 	const int maxTime = 50000;
 	int totalTimeLeft;

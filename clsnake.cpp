@@ -41,14 +41,14 @@ int main()
 	SDL_Color color = { 200, 190, 205 };
 
 	int close = 0; 
-	const int numSnakeBrains = 50;
+	const int numSnakeBrains = 1000;
 	std::vector<SnakeBrain> snakeBrains;
 	std::vector<SnakeBrain> replaySnakeBrains;
 	const int numHiddenLayers = 2;
 	const int hiddenLayerSize = 20;
 	const int outputLayerSize = 3;
-	int numSquares = 30;
-	const int squareSize = 30;
+	int numSquares = 20;
+	const int squareSize = 20;
 	const int boardMarginLeft = 150;
 	const int boardMarginTop = 50;
 	const int numInputs = 24;	// Nake sure it corresponds with measure()
@@ -59,7 +59,7 @@ int main()
 		snakeBrains.push_back(brain);
 	}
 
-	const int numGenerations = 5;
+	const int numGenerations = 25;
 	for (int gen = 0; gen < numGenerations; gen++) {
 		std::vector<std::tuple<int, SnakeBrain*>> brainsWithScore;
 
@@ -121,7 +121,9 @@ int main()
 	SnakeMove snakeMove = SnakeMove::Forward;
 	MeasureSquares measureSquares;
 
-	bool manualPlay = true;
+	bool manualPlay = false;
+
+	int useSnakeBrainGeneration = replaySnakeBrains.size() - 1;
 
 	while (!close) {
 		if (waitingForRestart) {
@@ -129,7 +131,7 @@ int main()
 				if (game != nullptr) {
 					delete game;
 				}
-				game = new Game(&replaySnakeBrains.back(), numSquares, numSquares, 150);
+				game = new Game(&replaySnakeBrains[useSnakeBrainGeneration], numSquares, numSquares, 150);
 				waitingForRestart = false;
 			}
 		}
@@ -184,6 +186,10 @@ int main()
 				case SDL_SCANCODE_LEFT:
 				case SDL_SCANCODE_RIGHT:
 					readSnakeKeyDown = true;
+					break;
+				case SDL_SCANCODE_G:
+					waitingForRestart = true;
+					useSnakeBrainGeneration = (useSnakeBrainGeneration + 1) % replaySnakeBrains.size();
 					break;
 				}
 
@@ -244,7 +250,7 @@ int main()
 			SDL_Surface* text = nullptr;
 			SDL_Texture* text_texture;
 
-			text = TTF_RenderText_Solid(font, std::format("Pos: {}", game->snake->position.toString()).c_str(), color);
+			text = TTF_RenderText_Solid(font, std::format("Gen: {} Pos: {} Score: {} Time left: {}", useSnakeBrainGeneration + 1, game->snake->position.toString(), game->score, game->timeLeft).c_str(), color);
 
 			if (text == nullptr) {
 				std::cout << "Failed to render text: " << TTF_GetError() << std::endl;

@@ -30,11 +30,11 @@ float linear(float v) {
 }
 
 struct SnakePerceptron {
-	float w;
+	std::vector<float> w;
 	float b;
 
-	SnakePerceptron() {
-		w = getRandomFloat(-1.0f, 1.0f);
+	SnakePerceptron(int tNumWeights) {
+		w = getRandomFloats(-1.0f, 1.0f, tNumWeights);
 		b = getRandomFloat(-1.0f, 1.0f);
 	}
 
@@ -43,7 +43,7 @@ struct SnakePerceptron {
 	}
 
 	SnakePerceptron clone() {
-		SnakePerceptron ret;
+		SnakePerceptron ret(w.size());
 
 		ret.w = w;
 		ret.b = b;
@@ -80,49 +80,51 @@ public:
 		hiddenLayerSize = tHiddenLayerSize;
 		outputLayerSize = tOutputLayerSize;
 		
-		sizes.push_back(numInputs);
-		for (auto& _ : { numHiddenLayers }) {
-			sizes.push_back(hiddenLayerSize);
+		layerSizes.push_back(numInputs);
+		for (int i = 0; i < tNumHiddenLayers; i++) {
+			layerSizes.push_back(hiddenLayerSize);
 		}
-		sizes.push_back(outputLayerSize);
-		int numPerceptrons = 0;
-		for (int i = 0; i < sizes.size() - 1; i++) {
-			numPerceptrons += sizes[i] * sizes[i + 1];
-		}
-		perceptrons = std::vector<SnakePerceptron>(numPerceptrons, SnakePerceptron());
+		layerSizes.push_back(outputLayerSize);
 
+		perceptrons.clear();
+
+		// Includes the output layer. Remember, there are no perceptrons going into the first layer (= input layer)
+		for (int idxLayerSize = 0; idxLayerSize < layerSizes.size() - 1; idxLayerSize++) {
+			std::vector<SnakePerceptron> newPerceptrons;
+			for (int idxPerceptron = 0; idxPerceptron < layerSizes[idxLayerSize + 1]; idxPerceptron++) {
+				newPerceptrons.push_back(SnakePerceptron(layerSizes[idxLayerSize]));
+			}
+			perceptrons.insert(perceptrons.end(), newPerceptrons.begin(), newPerceptrons.end());
+			int a = 3;
+		}
+		int a = 3;
 	}
 
 	std::vector<float> think(const std::vector<float>& inputs) {
-		int offsetIn = 0;
-		int offsetOut = 0;
+		int perceptronOffsetIn = 0;
+		int perceptronOffsetOut = 0;
 
 		std::vector<float> activations;
 		for (auto& i : inputs) {
 			activations.push_back(i);
 		}
 
-		// TODO: Calculate softmax for output
-		// Is ReLU used before softmax? Otherwise we should only loop
-		//	until sizes.size() - 2 below!
+		// TODO: Should we use softmax for the output layer?
 
-		// This loop connects the current layer with the next
-		for (int idxLayer = 0; idxLayer < sizes.size() - 1; idxLayer++) {
-			offsetOut += sizes[idxLayer];
+		int perceptronOffset = 0;
+		for (int idxLayerSize = 1; idxLayerSize < layerSizes.size(); idxLayerSize++) {
 			std::vector<float> newActivations;
-			for (int idxOut = 0; idxOut < sizes[idxLayer + 1]; idxOut++) {
-				float activation = 0.0f;
-				for (int idxIn = 0; idxIn < activations.size(); idxIn++) {
-					auto perceptronIdx = layerIdToPerceptronId(idxLayer, idxOut * activations.size() + idxIn);
-					auto& perceptron = perceptrons[perceptronIdx];
-					activation += relu(activations[idxIn] * perceptron.w + perceptron.b);
+			for (int idxPerceptron = perceptronOffset; idxPerceptron < perceptronOffset + layerSizes[idxLayerSize]; idxPerceptron++) {
+				float activation = 0;
+				SnakePerceptron* perceptron = &perceptrons[idxPerceptron];
+				for (int idxActivation = 0; idxActivation < activations.size(); idxActivation++) {
+					activation += activations[idxActivation] * perceptron->w[idxActivation];
 				}
+				activation = relu(activation + perceptron->b);
 				newActivations.push_back(activation);
 			}
-			// Calculated activations becomes inputs for the next layer
+			perceptronOffset += layerSizes[idxLayerSize];
 			activations = newActivations;
-			// Output turn input in next step
-			offsetIn += sizes[idxLayer];
 		}
 
 		return activations;
@@ -134,7 +136,7 @@ public:
 
 
 private:
-	std::vector<int> sizes;
+	std::vector<int> layerSizes;
 
 	std::vector<float> processLayer(std::vector<float> inActivations, std::vector<float> weights, float (*activationFunction)(float)) {
 		std::vector<float> outActivations(weights.size(), 0.0f);
@@ -153,7 +155,7 @@ private:
 		int ret = 0;
 
 		for (int i = 0; i < layerIdx; i++) {
-			ret += sizes[i] * sizes[i + 1];
+			ret += layerSizes[i] * layerSizes[i + 1];
 		}
 
 		ret += localIdx;

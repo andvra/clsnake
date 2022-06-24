@@ -17,7 +17,7 @@ struct MeasureSquares {
 class Game {
 public:
 	// Round time is important for training: keep it pretty high so the snake can learn!
-	Game(SnakeBrain* brain, int tBoardWidth, int tBoardHeight, int roundTime = 500) {
+	Game(SnakeBrain* brain, int tBoardWidth, int tBoardHeight, int roundTime = 300) {
 		boardWidth = tBoardWidth;
 		boardHeight = tBoardHeight;
 		startingPosition = Vec2i(boardWidth / 2 - 6, boardHeight / 2 + 9);
@@ -52,10 +52,10 @@ public:
 	// This is used for rendering the snake. Make sure to call setupBoard() before calling this
 	bool playStep(bool isManual, SnakeMove* snakeMove = nullptr, MeasureSquares* measureSquares = nullptr ) {
 		const int timeUnitScore = 1;
-		const int foodScore = 500;
-		const int foodTimeAdd = 500;
-		const int crashPenalty = 1000;
-		const int timeOutPenalty = 1000;
+		const int foodScore = 1500;
+		const int foodTimeAdd = 100;
+		const int crashPenalty = 500;
+		const int timeOutPenalty = 500;
 
 		auto measurements = measure(snake, measureSquares);
 
@@ -71,6 +71,7 @@ public:
 
 		bool didCrash = isCrash(snake, snake->nextPosition());
 		snake->move();
+
 		if (didCrash) {
 			snake->isAlive = false;
 			score -= crashPenalty;

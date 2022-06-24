@@ -7,6 +7,7 @@
 #include "game.h"
 #include "evolution.h"
 #include <format>
+#include <thread>
 
 #undef main
 
@@ -59,22 +60,35 @@ int main()
 		snakeBrains.push_back(brain);
 	}
 
-	const int numGenerations = 25;
+	const int numGenerations = 15;
+	std::cout << std::format("Gen\tMax score\tTime (s)") << std::endl;
 	for (int gen = 0; gen < numGenerations; gen++) {
-		std::vector<std::tuple<int, SnakeBrain*>> brainsWithScore;
+		auto genStartTime = SDL_GetTicks();
+		std::vector<std::tuple<int, SnakeBrain*>> brainsWithScore(snakeBrains.size(), std::tuple<int, SnakeBrain*>(0, 0));
 
-		for (auto& brain : snakeBrains) {
-			Game game(&brain, numSquares, numSquares);
-			auto score = game.play(&brain);
-			//std::cout << "Snake got score " << score << std::endl;
-			brainsWithScore.push_back(std::tuple<int, SnakeBrain*>(score, &brain));
+		const int numThreads = 12;
+		for (int brainOffset = 0; brainOffset < snakeBrains.size(); brainOffset += numThreads) {
+			std::vector<std::thread> threads;
+			for (int idxBrain = brainOffset; idxBrain < std::min(numSnakeBrains, brainOffset + numThreads); idxBrain++) {
+				SnakeBrain& brain = snakeBrains[idxBrain];
+				threads.push_back(std::thread([&brainsWithScore, &brain, &numSquares, idxBrain]() {
+					Game game(&brain, numSquares, numSquares);
+					auto score = game.play(&brain);
+					brainsWithScore[idxBrain] = std::tuple<int, SnakeBrain*>(score, &brain);
+				}));
+			}
+			for (auto& t : threads) {
+				t.join();
+			}
 		}
 
 		std::sort(brainsWithScore.begin(), brainsWithScore.end(), [](std::tuple<int, SnakeBrain*> a, std::tuple<int, SnakeBrain*>b) {return std::get<0>(a) > std::get<0>(b); });
 
 		auto bestBrainInGeneration = std::get<1>(brainsWithScore.front());
 
-		std::cout << "Best brain of gen #" << std::to_string(gen + 1) << ": " << std::get<0>(brainsWithScore.front()) << std::endl;
+		auto maxScore = std::get<0>(brainsWithScore.front());
+		auto genTimeS = (SDL_GetTicks() - genStartTime) / 1000.0f;
+		std::cout << std::format("{}\t{}\t\t{}", gen + 1, maxScore, genTimeS) << std::endl;
 
 		replaySnakeBrains.push_back(bestBrainInGeneration->clone());
 

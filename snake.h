@@ -21,27 +21,6 @@ enum class SnakeMove {
 	Forward
 };
 
-class BrainLayer {
-public:
-	std::vector<float> weights;
-
-	void initRandom(int numNodes) {
-		weights.reserve(numNodes);
-		for (int idx = 0; idx < numNodes; idx++) {
-			// -1 <= x <= 1
-			float val = getRandomFloat(-1.0, 1.0);
-			weights.push_back(val);
-		}
-	}
-
-	BrainLayer clone() {
-		BrainLayer c;
-		c.weights = weights;
-
-		return c;
-	}
-};
-
 float relu(float v) {
 	return std::max(0.0f, v);
 }
@@ -50,46 +29,112 @@ float linear(float v) {
 	return v;
 }
 
-class SnakeBrain {
-public:
-	SnakeBrain() {}
+struct SnakePerceptron {
+	float w;
+	float b;
 
-	void init(int numHiddenLayers, int hiddenLayerSize, int outputLayerSize) {
-		for (int idx = 0; idx < numHiddenLayers; idx++) {
-			BrainLayer layer;
-			layer.initRandom(hiddenLayerSize);
-			hiddenLayers.push_back(layer);
-		}
-		outputLayer.initRandom(outputLayerSize);
+	SnakePerceptron() {
+		w = getRandomFloat(-1.0f, 1.0f);
+		b = getRandomFloat(-1.0f, 1.0f);
 	}
 
-	std::vector<float> think(std::vector<float> inputs) {
-		std::vector<int> sizes;
-		std::vector<float> activations = inputs;
+	float inference(float input) {
 
-		for (auto& h : hiddenLayers) {
-			activations = processLayer(activations, h.weights, &relu);
+	}
+
+	SnakePerceptron clone() {
+		SnakePerceptron ret;
+
+		ret.w = w;
+		ret.b = b;
+
+		return ret;
+	}
+};
+
+class SnakeBrain {
+public:
+	SnakeBrain(int tNumInputs, int tNumHiddenLayers, int tHiddenLayerSize, int tOutputLayerSize) {
+		init(tNumInputs, tNumHiddenLayers, tHiddenLayerSize, tOutputLayerSize);
+	}
+
+	SnakeBrain(std::vector<SnakePerceptron> tPerceptrons, int tNumInputs, int tNumHiddenLayers, int tHiddenLayerSize, int tOutputLayerSize) {
+		init(tNumInputs, tNumHiddenLayers, tHiddenLayerSize, tOutputLayerSize);
+
+		perceptrons.clear();
+
+		for (auto& p : tPerceptrons) {
+			perceptrons.push_back(p.clone());
 		}
+	}
+
+	std::vector<SnakePerceptron> perceptrons;
+	int numHiddenLayers;
+	int hiddenLayerSize;
+	int outputLayerSize;
+	int numInputs;
+
+	void init(int tNumInputs, int tNumHiddenLayers, int tHiddenLayerSize, int tOutputLayerSize) {
+		numInputs = tNumInputs;
+		numHiddenLayers = tNumHiddenLayers;
+		hiddenLayerSize = tHiddenLayerSize;
+		outputLayerSize = tOutputLayerSize;
 		
-		activations = processLayer(activations, outputLayer.weights, &linear);
+		sizes.push_back(numInputs);
+		for (auto& _ : { numHiddenLayers }) {
+			sizes.push_back(hiddenLayerSize);
+		}
+		sizes.push_back(outputLayerSize);
+		int numPerceptrons = 0;
+		for (int i = 0; i < sizes.size() - 1; i++) {
+			numPerceptrons += sizes[i] * sizes[i + 1];
+		}
+		perceptrons = std::vector<SnakePerceptron>(numPerceptrons, SnakePerceptron());
+
+	}
+
+	std::vector<float> think(const std::vector<float>& inputs) {
+		int offsetIn = 0;
+		int offsetOut = 0;
+
+		std::vector<float> activations;
+		for (auto& i : inputs) {
+			activations.push_back(i);
+		}
+
+		// TODO: Calculate softmax for output
+		// Is ReLU used before softmax? Otherwise we should only loop
+		//	until sizes.size() - 2 below!
+
+		// This loop connects the current layer with the next
+		for (int idxLayer = 0; idxLayer < sizes.size() - 1; idxLayer++) {
+			offsetOut += sizes[idxLayer];
+			std::vector<float> newActivations;
+			for (int idxOut = 0; idxOut < sizes[idxLayer + 1]; idxOut++) {
+				float activation = 0.0f;
+				for (int idxIn = 0; idxIn < activations.size(); idxIn++) {
+					auto perceptronIdx = layerIdToPerceptronId(idxLayer, idxOut * activations.size() + idxIn);
+					auto& perceptron = perceptrons[perceptronIdx];
+					activation += relu(activations[idxIn] * perceptron.w + perceptron.b);
+				}
+				newActivations.push_back(activation);
+			}
+			// Calculated activations becomes inputs for the next layer
+			activations = newActivations;
+			// Output turn input in next step
+			offsetIn += sizes[idxLayer];
+		}
 
 		return activations;
 	}
 
 	SnakeBrain clone() {
-		return SnakeBrain(hiddenLayers, outputLayer);
+		return SnakeBrain(perceptrons, numInputs, numHiddenLayers, hiddenLayerSize, outputLayerSize);
 	}
 
-	std::vector<BrainLayer> hiddenLayers;
-	BrainLayer outputLayer;
 
 private:
-	SnakeBrain(std::vector<BrainLayer> tHiddenLayers, BrainLayer tOutputLayer) {
-		for (auto& t : tHiddenLayers) {
-			hiddenLayers.push_back(t.clone());
-		}
-		outputLayer = tOutputLayer.clone();
-	}
+	std::vector<int> sizes;
 
 	std::vector<float> processLayer(std::vector<float> inActivations, std::vector<float> weights, float (*activationFunction)(float)) {
 		std::vector<float> outActivations(weights.size(), 0.0f);
@@ -102,6 +147,18 @@ private:
 			outActivations[i] = activationFunction(sum);
 		}
 		return outActivations;
+	}
+
+	int layerIdToPerceptronId(int layerIdx, int localIdx) {
+		int ret = 0;
+
+		for (int i = 0; i < layerIdx; i++) {
+			ret += sizes[i] * sizes[i + 1];
+		}
+
+		ret += localIdx;
+
+		return ret;
 	}
 };
 

@@ -38,8 +38,10 @@ public:
 	// This is used for rendering the snake. Make sure to call setupBoard() before calling this
 	bool playStep() {
 		const int timeUnitScore = 5;
-		const int foodScore = 100;
+		const int foodScore = 150;
 		const int foodTimeAdd = 500;
+		const int crashPenalty = 100;
+		const int timeOutPenalty = 100;
 		auto measurements = measure(snake);
 		auto brainOutput = snake->think(measurements);
 		snake->updateDirection(brainOutput);
@@ -47,7 +49,7 @@ public:
 		snake->move();
 		if (didCrash) {
 			snake->isAlive = false;
-			score += snake->position.manhattanDistance(startingPosition) * 10;
+			score -= crashPenalty;
 			return false;
 		}
 		if (snake->position == foodPosition) {
@@ -62,6 +64,7 @@ public:
 		score += timeUnitScore;
 
 		if (totalTimeLeft <= 0 || timeLeft <= 0) {
+			score -= timeOutPenalty;
 			return false;
 		}
 
@@ -136,13 +139,11 @@ private:
 		}
 
 		auto measurements = std::vector<float>(24, 0);
-		float maxDistanceWall = std::ceil(std::min(boardWidth, boardHeight) / 2.0f);
-		float maxDistanceFood = static_cast<float>(Vec2i(0, 0).manhattanDistance(Vec2i(boardWidth, boardHeight)));
-		float maxDistanceBody = 2.0f;	// TODO: Maybe we should measure "distance clear infront of body" instead?
 
 		// 8 squares, 3 measurements each
 		for (int idxDir = 0; idxDir < 8; idxDir++) {
-			Vec2i deltaPos = posDeltas[idxDir];
+			// Make sure to use the right delta based on current snake position
+			Vec2i deltaPos = posDeltas[(idxDir + indexOffset) % 8];
 			Vec2i curPos = snake->position + deltaPos;
 			int distance = 1;
 			float food = 0;
@@ -163,31 +164,14 @@ private:
 			}
 			wall = 1.0f / distance;
 
-			int idxStart = ((idxDir + indexOffset) * 3) % 24;
+			// Three values, so multiply by three
+			int idxStart = idxDir * 3;
 			measurements[idxStart + 0] = wall;
 			measurements[idxStart + 1] = food;
 			measurements[idxStart + 2] = body;
-
-			//Vec2i p = snake->position + posDeltas[i];
-			//int wallDistanceX = std::min(p.x + 1, boardWidth - p.x);
-			//int wallDistanceY = std::min(p.y + 1, boardHeight - p.y);
-			//int wallDistance = std::min(wallDistanceX, wallDistanceY);
-			//int foodDistance = p.manhattanDistance(foodPosition);
-			//int bodyDistance = 10000;
-			//for (auto& bp : snake->body) {
-			//	bodyDistance = std::min(bodyDistance, p.manhattanDistance(bp));
-			//}
-			//// There are three measurements per square
-			//int idxStart = ((i + indexOffset) * 3)%24;
-
-			//measurements[idxStart + 0] = wallDistance / maxDistanceWall;
-			//measurements[idxStart + 1] = foodDistance / maxDistanceFood;
-			//measurements[idxStart + 2] = bodyDistance / maxDistanceBody;
-
 		}
 
 		return measurements;
-
 	}
 
 	Vec2i generateFoodPosition() {

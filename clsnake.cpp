@@ -38,10 +38,11 @@ int main()
 	const int squareSize = 30;
 	const int boardMarginLeft = 150;
 	const int boardMarginTop = 50;
+	const int numInputs = 24;	// Nake sure it corresponds with measure()
+	const float mutationProbability = 0.05;	// On range 0 - 1
 
 	for (int i = 0; i < numSnakeBrains; i++) {
-		SnakeBrain brain;
-		brain.init(numHiddenLayers, hiddenLayerSize, outputLayerSize);
+		SnakeBrain brain(numInputs, numHiddenLayers, hiddenLayerSize, outputLayerSize);
 		snakeBrains.push_back(brain);
 	}
 
@@ -80,7 +81,7 @@ int main()
 			for (int childIdx = 1; childIdx < numSnakeBrains; childIdx++) {
 				auto parentIdx1 = getRandomInt(0, numParents - 1);
 				auto parentIdx2 = getRandomInt(0, numParents - 1);
-				SnakeBrain child = ClSnake::makeChild(parents[parentIdx1], parents[parentIdx2]);
+				SnakeBrain child = ClSnake::makeChild(parents[parentIdx1], parents[parentIdx2], mutationProbability);
 				newSnakeBrains.push_back(child);
 			}
 			snakeBrains = newSnakeBrains;

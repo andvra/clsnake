@@ -42,7 +42,7 @@ int main()
 	SDL_Color color = { 200, 190, 205 };
 
 	int close = 0; 
-	const int numSnakeBrains = 1000;
+	const int numSnakeBrains = 1'000;
 	std::vector<SnakeBrain> snakeBrains;
 	std::vector<SnakeBrain> replaySnakeBrains;
 	const int numHiddenLayers = 2;
@@ -53,6 +53,7 @@ int main()
 	const int boardMarginLeft = 150;
 	const int boardMarginTop = 50;
 	const int numInputs = 24;	// Nake sure it corresponds with measure()
+	const float partOfParentsUsedForCrossover = 0.02f; // On range 0 (none) to 1 (all)
 	const float mutationProbability = 0.05;	// On range 0 - 1
 
 	for (int i = 0; i < numSnakeBrains; i++) {
@@ -98,7 +99,7 @@ int main()
 			// Keep the best brain of each generation
 			newSnakeBrains.push_back(bestBrainInGeneration->clone());
 			// TODO: Think of good criteria for a parent
-			int numParents = std::max(2, numSnakeBrains / 20);
+			int numParents = std::max(2, static_cast<int>(numSnakeBrains * partOfParentsUsedForCrossover));
 			std::vector<SnakeBrain*> parents;
 			parents.reserve(numParents);
 			for (int i = 0; i < numParents; i++) {
@@ -106,8 +107,13 @@ int main()
 			}
 			// Start at one, since we already added the currently best brain to the vector
 			for (int childIdx = 1; childIdx < numSnakeBrains; childIdx++) {
-				auto parentIdx1 = getRandomInt(0, numParents - 1);
-				auto parentIdx2 = getRandomInt(0, numParents - 1);
+				auto parentIdx1 = 0; 
+				auto parentIdx2 = 0;
+				// Make sure the parents are two different individuals
+				while (parentIdx1 == parentIdx2) {
+					parentIdx1 = getRandomInt(0, numParents - 1);
+					parentIdx2 = getRandomInt(0, numParents - 1);
+				}
 				SnakeBrain child = ClSnake::makeChild(parents[parentIdx1], parents[parentIdx2], mutationProbability);
 				newSnakeBrains.push_back(child);
 			}
@@ -152,12 +158,12 @@ int main()
 		else {
 			if (SDL_GetTicks() - lastTimeMs > 100) {
 				bool roundDone = false;
+				measureSquares.clear();
 				if (manualPlay) {
-					measureSquares.clear();
 					roundDone = !game->playStep(true, &snakeMove, &measureSquares);
 				}
 				else {
-					roundDone = !game->playStep(false);
+					roundDone = !game->playStep(false, nullptr, &measureSquares);
 				}
 				snakeMove = SnakeMove::Forward;// Reset when it has been sent - now we wait for a new keypress
 				if (roundDone) {
@@ -242,23 +248,26 @@ int main()
 			SDL_Rect r = boardPosToRenderRect(game->getFoodPosition());
 			SDL_RenderFillRect(rend, &r);
 
-			if (manualPlay) {
-				SDL_Rect r;
-				SDL_SetRenderDrawColor(rend, 180, 80, 80, 0);
-				for (auto& bp : measureSquares.body) {
-					r = boardPosToRenderRect(bp);
-					SDL_RenderFillRect(rend, &r);
-				}
-				SDL_SetRenderDrawColor(rend, 80, 80, 180, 0);
-				for (auto& fp : measureSquares.food) {
-					r = boardPosToRenderRect(fp);
-					SDL_RenderDrawRect(rend, &r);
-				}
-				SDL_SetRenderDrawColor(rend, 80, 180, 80, 0);
-				for (auto& wp : measureSquares.wall) {
-					r = boardPosToRenderRect(wp);
-					SDL_RenderDrawRect(rend, &r);
-				}
+			SDL_SetRenderDrawColor(rend, 180, 80, 80, 0);
+			for (auto& bp : measureSquares.body) {
+				r = boardPosToRenderRect(bp);
+				SDL_RenderFillRect(rend, &r);
+			}
+			SDL_SetRenderDrawColor(rend, 80, 80, 250, 0);
+			SDL_RenderSetScale(rend, 3.0f, 3.0f);
+			for (auto& fp : measureSquares.food) {
+				r = boardPosToRenderRect(fp);
+				r.x /= 3.0f;
+				r.y /= 3.0f;
+				r.w /= 2.6f;
+				r.h /= 2.5f;
+				SDL_RenderDrawRect(rend, &r);
+			}
+			SDL_RenderSetScale(rend, 1, 1);
+			SDL_SetRenderDrawColor(rend, 80, 180, 80, 0);
+			for (auto& wp : measureSquares.wall) {
+				r = boardPosToRenderRect(wp);
+				SDL_RenderDrawRect(rend, &r);
 			}
 
 			SDL_Surface* text = nullptr;

@@ -210,7 +210,7 @@ private:
 	}
 
 	Vec2i generateFoodPosition() {
-		int maxIters = 10000;
+		const int maxIters = 10'000;
 
 		while (maxIters > 0) {
 			int x = getRandomInt(0, boardWidth);

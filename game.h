@@ -56,9 +56,19 @@ public:
 		const int foodTimeAdd = 500;
 		const int crashPenalty = 100;
 		const int timeOutPenalty = 100;
-		auto measurements = measure(snake);
-		auto brainOutput = snake->think(measurements);
-		snake->updateDirection(brainOutput);
+
+		auto measurements = measure(snake, measureSquares);
+
+		if (isManual) {
+			if (snakeMove != nullptr) {
+				snake->updateDirection(*snakeMove);
+			}
+		}
+		else {
+			auto brainOutput = snake->think(measurements);
+			snake->updateDirection(brainOutput);
+		}
+
 		bool didCrash = isCrash(snake, snake->nextPosition());
 		snake->move();
 		if (didCrash) {

@@ -168,8 +168,8 @@ public:
 	Snake(SnakeBrain* tSnakeBrain, Vec2i tPos) {
 		position = tPos;
 		direction = SnakeDirection::Down;
-		body.push_back(tPos - Vec2i(0, 2));
-		body.push_back(tPos - Vec2i(0, 1));
+		body.push_back(tPos + Vec2i(0, -2));
+		body.push_back(tPos + Vec2i(0, -1));
 		body.push_back(tPos);
 		isAlive = true;
 		ateLastMove = false;
@@ -178,7 +178,7 @@ public:
 
 	SnakeMove think(std::vector<float> input) {
 		auto outputs = snakeBrain->think(input);
-		int maxElementIndex = std::max_element(outputs.begin(), outputs.end()) - outputs.begin();
+		int maxElementIndex = std::distance(std::begin(outputs), std::max_element(std::begin(outputs), std::end(outputs)));
 
 		SnakeMove dir = SnakeMove::Forward;
 
@@ -223,10 +223,10 @@ public:
 
 	Vec2i nextPosition() {
 		std::map<SnakeDirection, Vec2i> pDeltaMap = {
-			{SnakeDirection::Down, Vec2i(0,-1)},
+			{SnakeDirection::Down, Vec2i(0,1)},
 			{SnakeDirection::Left,Vec2i(-1,0)},
 			{SnakeDirection::Right, Vec2i(1,0)},
-			{SnakeDirection::Up, Vec2i(0,1)}
+			{SnakeDirection::Up, Vec2i(0,-1)}
 		};
 
 		return position + pDeltaMap[direction];

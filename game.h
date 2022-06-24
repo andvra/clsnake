@@ -2,6 +2,18 @@
 
 #include "snake.h"
 
+struct MeasureSquares {
+	std::vector<Vec2i> body;
+	std::vector<Vec2i> food;
+	std::vector<Vec2i> wall;
+
+	void clear() {
+		body.clear();
+		food.clear();
+		wall.clear();
+	}
+};
+
 class Game {
 public:
 	// Round time is important for training: keep it pretty high so the snake can learn!
@@ -31,12 +43,14 @@ public:
 
 		auto iter = std::find_if(snake->body.begin(), snake->body.end(), [&pt](Vec2i v) {return v == pt; });
 
-		return (iter != snake->body.end());
+		auto didCrash = (iter != snake->body.end());
+
+		return didCrash;
 	}
 
 	// Return true if we should go on
 	// This is used for rendering the snake. Make sure to call setupBoard() before calling this
-	bool playStep() {
+	bool playStep(bool isManual, SnakeMove* snakeMove = nullptr, MeasureSquares* measureSquares = nullptr ) {
 		const int timeUnitScore = 5;
 		const int foodScore = 150;
 		const int foodTimeAdd = 500;
@@ -81,7 +95,7 @@ public:
 		auto done = false;
 
 		while (!done) {
-			done = !playStep();
+			done = !playStep(false);
 		}
 
 		return score;
@@ -116,7 +130,7 @@ private:
 	// 7 6 5
 	//
 	// Returns normalized measurements
-	std::vector<float> measure(Snake* snake) {
+	std::vector<float> measure(Snake* snake, MeasureSquares* measureSquares) {
 
 		std::vector<Vec2i> posDeltas = {
 			Vec2i(-1, -1),
@@ -152,15 +166,27 @@ private:
 			while (curPos.x >= 0 && curPos.x < boardWidth && curPos.y >= 0 && curPos.y < boardHeight) {
 				if (curPos == foodPosition) {
 					food = 1.0f;
+					if (measureSquares != nullptr) {
+						measureSquares->food.push_back(curPos);
+					}
 				}
-				for (auto& bp : snake->body) {
-					if (curPos == bp) {
-						body = 1.0f;
-						break;
+				// No need to check if there's already a crash
+				if (body == 0.0f) {
+					for (auto& bp : snake->body) {
+						if (curPos == bp) {
+							body = 1.0f;
+							if (measureSquares != nullptr) {
+								measureSquares->body.push_back(curPos);
+							}
+							break;
+						}
 					}
 				}
 				distance++;
 				curPos = curPos + deltaPos;
+			}
+			if (measureSquares != nullptr) {
+				measureSquares->wall.push_back(curPos);
 			}
 			wall = 1.0f / distance;
 

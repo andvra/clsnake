@@ -1,10 +1,12 @@
 #include <SDL2/SDL.h> 
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_timer.h> 
+#include <SDL2/SDL_ttf.h>
 
 #include "snake.h"
 #include "game.h"
 #include "evolution.h"
+#include <format>
 
 #undef main
 
@@ -25,10 +27,21 @@ int main()
 	Uint32 render_flags = SDL_RENDERER_ACCELERATED; 
 
 	// creates a renderer to render our images 
-	SDL_Renderer* rend = SDL_CreateRenderer(win, -1, render_flags); 
+	SDL_Renderer* rend = SDL_CreateRenderer(win, -1, render_flags);
+
+	if (TTF_Init() < 0) {
+		std::cout << "Error initializing SDL_ttf: " << TTF_GetError() << std::endl;
+	}
+	TTF_Font* font = TTF_OpenFont("C:\\Windows\\Fonts\\arial.ttf", 24);
+
+	if (!font) {
+		std::cout << "Failed to load font: " << TTF_GetError() << std::endl;
+	}
+
+	SDL_Color color = { 200, 190, 205 };
 
 	int close = 0; 
-	const int numSnakeBrains = 500;
+	const int numSnakeBrains = 50;
 	std::vector<SnakeBrain> snakeBrains;
 	std::vector<SnakeBrain> replaySnakeBrains;
 	const int numHiddenLayers = 2;
@@ -71,7 +84,7 @@ int main()
 			// Keep the best brain of each generation
 			newSnakeBrains.push_back(bestBrainInGeneration->clone());
 			// TODO: Think of good criteria for a parent
-			int numParents = numSnakeBrains / 20;
+			int numParents = std::max(2, numSnakeBrains / 20);
 			std::vector<SnakeBrain*> parents;
 			parents.reserve(numParents);
 			for (int i = 0; i < numParents; i++) {
@@ -104,6 +117,12 @@ int main()
 		return r;
 	};
 
+	bool readSnakeKeyDown = true;
+	SnakeMove snakeMove = SnakeMove::Forward;
+	MeasureSquares measureSquares;
+
+	bool manualPlay = true;
+
 	while (!close) {
 		if (waitingForRestart) {
 			if (SDL_GetTicks() > freezeUntil) {
@@ -116,7 +135,15 @@ int main()
 		}
 		else {
 			if (SDL_GetTicks() - lastTimeMs > 100) {
-				auto roundDone = !game->playStep();
+				bool roundDone = false;
+				if (manualPlay) {
+					measureSquares.clear();
+					roundDone = !game->playStep(true, &snakeMove, &measureSquares);
+				}
+				else {
+					roundDone = !game->playStep(false);
+				}
+				snakeMove = SnakeMove::Forward;// Reset when it has been sent - now we wait for a new keypress
 				if (roundDone) {
 					waitingForRestart = true;
 					freezeUntil = SDL_GetTicks() + freezeTimeMs;
@@ -142,7 +169,24 @@ int main()
 				case SDL_SCANCODE_ESCAPE:
 					close = 1;
 					break;
+				case SDL_SCANCODE_LEFT:
+					snakeMove = SnakeMove::Left;
+					readSnakeKeyDown = false;
+					break;
+				case SDL_SCANCODE_RIGHT:
+					snakeMove = SnakeMove::Right;
+					readSnakeKeyDown = false;
+					break;
 				}
+				break;
+			case SDL_KEYUP:
+				switch (event.key.keysym.scancode) {
+				case SDL_SCANCODE_LEFT:
+				case SDL_SCANCODE_RIGHT:
+					readSnakeKeyDown = true;
+					break;
+				}
+
 			}
 		}
 
@@ -177,6 +221,43 @@ int main()
 			SDL_SetRenderDrawColor(rend, 200, 130, 100, 0);
 			SDL_Rect r = boardPosToRenderRect(game->getFoodPosition());
 			SDL_RenderFillRect(rend, &r);
+
+			if (manualPlay) {
+				SDL_Rect r;
+				SDL_SetRenderDrawColor(rend, 180, 80, 80, 0);
+				for (auto& bp : measureSquares.body) {
+					r = boardPosToRenderRect(bp);
+					SDL_RenderFillRect(rend, &r);
+				}
+				SDL_SetRenderDrawColor(rend, 80, 80, 180, 0);
+				for (auto& fp : measureSquares.food) {
+					r = boardPosToRenderRect(fp);
+					SDL_RenderDrawRect(rend, &r);
+				}
+				SDL_SetRenderDrawColor(rend, 80, 180, 80, 0);
+				for (auto& wp : measureSquares.wall) {
+					r = boardPosToRenderRect(wp);
+					SDL_RenderDrawRect(rend, &r);
+				}
+			}
+
+			SDL_Surface* text = nullptr;
+			SDL_Texture* text_texture;
+
+			text = TTF_RenderText_Solid(font, std::format("Pos: {}", game->snake->position.toString()).c_str(), color);
+
+			if (text == nullptr) {
+				std::cout << "Failed to render text: " << TTF_GetError() << std::endl;
+			}
+			else {
+				text_texture = SDL_CreateTextureFromSurface(rend, text);
+
+				SDL_Rect dest = { 0, 0, text->w, text->h };
+
+				SDL_RenderCopy(rend, text_texture, nullptr, &dest);
+				SDL_DestroyTexture(text_texture);
+				SDL_FreeSurface(text);
+			}
 		}
 
 		SDL_RenderPresent(rend);
@@ -185,6 +266,8 @@ int main()
 		SDL_Delay(1000 / 60);
 	}
 
+	TTF_CloseFont(font);
+	TTF_Quit();
 
 	// destroy renderer 
 	SDL_DestroyRenderer(rend); 

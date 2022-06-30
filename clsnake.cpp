@@ -40,20 +40,19 @@ int main()
 	}
 
 	SDL_Color color = { 200, 190, 205 };
-
-	int close = 0; 
-	const int numSnakeBrains = 1'000;
+	int close = 0;
+	const int numSnakeBrains = 1'500;
 	std::vector<SnakeBrain> snakeBrains;
 	std::vector<SnakeBrain> replaySnakeBrains;
 	const int numHiddenLayers = 2;
 	const int hiddenLayerSize = 20;
 	const int outputLayerSize = 3;
-	int numSquares = 20;
+	const int numSquares = 20;
 	const int squareSize = 20;
 	const int boardMarginLeft = 150;
 	const int boardMarginTop = 50;
-	const int numInputs = 24;	// Nake sure it corresponds with measure()
-	const float partOfParentsUsedForCrossover = 0.02f; // On range 0 (none) to 1 (all)
+	const int numInputs = 24;	// Make sure it corresponds with measure()
+	const float partOfParentsUsedForCrossover = 0.04f; // On range 0 (none) to 1 (all)
 	const float mutationProbability = 0.05;	// On range 0 - 1
 
 	for (int i = 0; i < numSnakeBrains; i++) {
@@ -61,7 +60,7 @@ int main()
 		snakeBrains.push_back(brain);
 	}
 
-	const int numGenerations = 15;
+	const int numGenerations = 25;
 	std::cout << std::format("Gen\tMax score\tTime (s)") << std::endl;
 	for (int gen = 0; gen < numGenerations; gen++) {
 		auto genStartTime = SDL_GetTicks();

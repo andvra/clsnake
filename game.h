@@ -141,6 +141,8 @@ private:
 	// Returns normalized measurements
 	std::vector<float> measure(Snake* snake, MeasureSquares* measureSquares) {
 
+		const int numMeasurements = 24;
+
 		std::vector<Vec2i> posDeltas = {
 			Vec2i(-1, -1),
 			Vec2i(-1, 0),
@@ -161,7 +163,12 @@ private:
 		case SnakeDirection::Left:	indexOffset = 6; break;
 		}
 
-		auto measurements = std::vector<float>(24, 0);
+		// TODO: Update what measurements we make. First, without considering where the body is. This is done by:
+		//	Don't add body when eating. 
+		//	Measure: angle to food, (manhattan) distance to food, distance to wall (left, right, up down). 
+		// Then, add body. Measure left, right, forward. Think of a better measurement - body is the trickiest!
+
+		auto measurements = std::vector<float>(numMeasurements, 0);
 
 		// 8 squares, 3 measurements each
 		for (int idxDir = 0; idxDir < 8; idxDir++) {

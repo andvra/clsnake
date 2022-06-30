@@ -43,7 +43,7 @@ struct SnakePerceptron {
 	}
 
 	SnakePerceptron clone() {
-		SnakePerceptron ret(w.size());
+		SnakePerceptron ret(static_cast<int>(w.size()));
 
 		ret.w = w;
 		ret.b = b;
@@ -180,7 +180,7 @@ public:
 
 	SnakeMove think(std::vector<float> input) {
 		auto outputs = snakeBrain->think(input);
-		int maxElementIndex = std::distance(std::begin(outputs), std::max_element(std::begin(outputs), std::end(outputs)));
+		auto maxElementIndex = std::distance(std::begin(outputs), std::max_element(std::begin(outputs), std::end(outputs)));
 
 		SnakeMove dir = SnakeMove::Forward;
 

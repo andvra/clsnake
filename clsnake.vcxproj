@@ -143,10 +143,14 @@
     <ClCompile Include="clsnake.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="config.h" />
     <ClInclude Include="evolution.h" />
     <ClInclude Include="game.h" />
     <ClInclude Include="snake.h" />
     <ClInclude Include="utils.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="README.md" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

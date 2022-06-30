@@ -72,7 +72,7 @@ std::vector<float> getRandomFloats(float tMin, float tMax, int tNum) {
 	vals.reserve(tNum);
 
 	for (int i = 0; i < tNum; i++) {
-		vals.push_back(dist(gen));
+		vals.push_back(static_cast<float>(dist(gen)));
 	}
 
 	return vals;

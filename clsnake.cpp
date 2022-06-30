@@ -3,76 +3,85 @@
 #include <SDL2/SDL_timer.h> 
 #include <SDL2/SDL_ttf.h>
 
-#include "snake.h"
-#include "game.h"
-#include "evolution.h"
 #include <format>
 #include <thread>
 
+#include "snake.h"
+#include "game.h"
+#include "evolution.h"
+#include "config.h"
+
+// Needed for SDL2
 #undef main
 
-int main() 
-{ 
-
-	// retutns zero on success else non-zero 
-	if (SDL_Init(SDL_INIT_EVERYTHING) != 0) { 
-		printf("error initializing SDL: %s\n", SDL_GetError()); 
-	} 
-	SDL_Window* win = SDL_CreateWindow("SDL Example", // creates a window 
-									SDL_WINDOWPOS_CENTERED, 
-									SDL_WINDOWPOS_CENTERED, 
-									1200, 1000, 0); 
-
-	// triggers the program that controls 
-	// your graphics hardware and sets flags 
-	Uint32 render_flags = SDL_RENDERER_ACCELERATED; 
-
-	// creates a renderer to render our images 
-	SDL_Renderer* rend = SDL_CreateRenderer(win, -1, render_flags);
-
+TTF_Font* loadFont(const char* fontPath, int fontSize) {
 	if (TTF_Init() < 0) {
 		std::cout << "Error initializing SDL_ttf: " << TTF_GetError() << std::endl;
 	}
-	TTF_Font* font = TTF_OpenFont("C:\\Windows\\Fonts\\arial.ttf", 24);
+
+	TTF_Font* font = TTF_OpenFont(fontPath, fontSize);
 
 	if (!font) {
 		std::cout << "Failed to load font: " << TTF_GetError() << std::endl;
+		return nullptr;
 	}
 
-	SDL_Color color = { 200, 190, 205 };
+	return font;
+}
+
+int main() 
+{
+	if (SDL_Init(SDL_INIT_EVERYTHING) != 0) { 
+		std::cout << "Error initializing SDL: %" << SDL_GetError() << std::endl;
+	} 
+
+	SDL_Window* win = SDL_CreateWindow("Genetic Snake",
+									SDL_WINDOWPOS_CENTERED, 
+									SDL_WINDOWPOS_CENTERED, 
+									SnakeConfiguration::Graphics::windowWidth,
+									SnakeConfiguration::Graphics::windowHeight,
+									0); 
+
+	Uint32 render_flags = SDL_RENDERER_ACCELERATED; 
+
+	SDL_Renderer* rend = SDL_CreateRenderer(win, -1, render_flags);
+
+
+	const auto fontPath = "C:\\Windows\\Fonts\\arial.ttf";
+	const auto fontSize = 24;
+
+	auto font = loadFont(fontPath, fontSize);
+
+	if (font == nullptr) {
+		return 1;
+	}
+
+	SDL_Color textColor = { 200, 190, 205 };
 	int close = 0;
-	const int numSnakeBrains = 1'500;
+
 	std::vector<SnakeBrain> snakeBrains;
 	std::vector<SnakeBrain> replaySnakeBrains;
-	const int numHiddenLayers = 2;
-	const int hiddenLayerSize = 20;
-	const int outputLayerSize = 3;
-	const int numSquares = 20;
-	const int squareSize = 20;
-	const int boardMarginLeft = 150;
-	const int boardMarginTop = 50;
-	const int numInputs = 24;	// Make sure it corresponds with measure()
-	const float partOfParentsUsedForCrossover = 0.04f; // On range 0 (none) to 1 (all)
-	const float mutationProbability = 0.05;	// On range 0 - 1
 
-	for (int i = 0; i < numSnakeBrains; i++) {
-		SnakeBrain brain(numInputs, numHiddenLayers, hiddenLayerSize, outputLayerSize);
+	for (int i = 0; i < SnakeConfiguration::Evolution::numSnakeBrains; i++) {
+		SnakeBrain brain(SnakeConfiguration::Brain::numInputs, SnakeConfiguration::Brain::numHiddenLayers, SnakeConfiguration::Brain::hiddenLayerSize, SnakeConfiguration::Brain::outputLayerSize);
 		snakeBrains.push_back(brain);
 	}
 
-	const int numGenerations = 25;
+
 	std::cout << std::format("Gen\tMax score\tTime (s)") << std::endl;
-	for (int gen = 0; gen < numGenerations; gen++) {
-		auto genStartTime = SDL_GetTicks();
+	auto useSnakeBrainGeneration = replaySnakeBrains.size() - 1;
+	auto bestGenerationScore = 0;
+	for (int gen = 0; gen < SnakeConfiguration::Evolution::numGenerations; gen++) {
+		auto genStartTime = SDL_GetTicks64();
 		std::vector<std::tuple<int, SnakeBrain*>> brainsWithScore(snakeBrains.size(), std::tuple<int, SnakeBrain*>(0, 0));
 
 		const int numThreads = 12;
 		for (int brainOffset = 0; brainOffset < snakeBrains.size(); brainOffset += numThreads) {
 			std::vector<std::thread> threads;
-			for (int idxBrain = brainOffset; idxBrain < std::min(numSnakeBrains, brainOffset + numThreads); idxBrain++) {
+			for (int idxBrain = brainOffset; idxBrain < std::min(SnakeConfiguration::Evolution::numSnakeBrains, brainOffset + numThreads); idxBrain++) {
 				SnakeBrain& brain = snakeBrains[idxBrain];
-				threads.push_back(std::thread([&brainsWithScore, &brain, &numSquares, idxBrain]() {
-					Game game(&brain, numSquares, numSquares);
+				threads.push_back(std::thread([&brainsWithScore, &brain, idxBrain]() {
+					Game game(&brain, SnakeConfiguration::Game::numSquares, SnakeConfiguration::Game::numSquares);
 					auto score = game.play(&brain);
 					brainsWithScore[idxBrain] = std::tuple<int, SnakeBrain*>(score, &brain);
 				}));
@@ -87,25 +96,30 @@ int main()
 		auto bestBrainInGeneration = std::get<1>(brainsWithScore.front());
 
 		auto maxScore = std::get<0>(brainsWithScore.front());
-		auto genTimeS = (SDL_GetTicks() - genStartTime) / 1000.0f;
+		auto genTimeS = (SDL_GetTicks64() - genStartTime) / 1000.0f;
 		std::cout << std::format("{}\t{}\t\t{}", gen + 1, maxScore, genTimeS) << std::endl;
+
+		if (maxScore > bestGenerationScore) {
+			useSnakeBrainGeneration = gen;
+			bestGenerationScore = maxScore;
+		}
 
 		replaySnakeBrains.push_back(bestBrainInGeneration->clone());
 
 		// Time to evolve!
-		if (gen < numGenerations - 1) {
+		if (gen < SnakeConfiguration::Evolution::numGenerations - 1) {
 			std::vector<SnakeBrain> newSnakeBrains;
 			// Keep the best brain of each generation
 			newSnakeBrains.push_back(bestBrainInGeneration->clone());
 			// TODO: Think of good criteria for a parent
-			int numParents = std::max(2, static_cast<int>(numSnakeBrains * partOfParentsUsedForCrossover));
+			int numParents = std::max(2, static_cast<int>(SnakeConfiguration::Evolution::numSnakeBrains * SnakeConfiguration::Evolution::partOfParentsUsedForCrossover));
 			std::vector<SnakeBrain*> parents;
 			parents.reserve(numParents);
 			for (int i = 0; i < numParents; i++) {
 				parents.push_back(std::get<1>(brainsWithScore[i]));
 			}
 			// Start at one, since we already added the currently best brain to the vector
-			for (int childIdx = 1; childIdx < numSnakeBrains; childIdx++) {
+			for (int childIdx = 1; childIdx < SnakeConfiguration::Evolution::numSnakeBrains; childIdx++) {
 				auto parentIdx1 = 0; 
 				auto parentIdx2 = 0;
 				// Make sure the parents are two different individuals
@@ -113,7 +127,7 @@ int main()
 					parentIdx1 = getRandomInt(0, numParents - 1);
 					parentIdx2 = getRandomInt(0, numParents - 1);
 				}
-				SnakeBrain child = ClSnake::makeChild(parents[parentIdx1], parents[parentIdx2], mutationProbability);
+				SnakeBrain child = ClSnake::makeChild(parents[parentIdx1], parents[parentIdx2], SnakeConfiguration::Evolution::mutationProbability);
 				newSnakeBrains.push_back(child);
 			}
 			snakeBrains = newSnakeBrains;
@@ -122,17 +136,17 @@ int main()
 
 	Game* game = nullptr;
 
-	auto lastTimeMs = SDL_GetTicks();
+	auto lastTimeMs = SDL_GetTicks64();
 	const float freezeTimeMs = 2000.0f;
 	auto freezeUntil = 0.0f;
 	auto waitingForRestart = true;
 
-	auto boardPosToRenderRect = [&squareSize, &boardMarginLeft, &boardMarginTop](Vec2i p) {
+	auto boardPosToRenderRect = [](Vec2i p) {
 		SDL_Rect r;
-		r.x = boardMarginLeft + p.x * squareSize;
-		r.y = boardMarginTop + p.y * squareSize;
-		r.w = squareSize;
-		r.h = squareSize;
+		r.x = SnakeConfiguration::Graphics::boardMarginLeft + p.x * SnakeConfiguration::Graphics::squareSize;
+		r.y = SnakeConfiguration::Graphics::boardMarginTop + p.y * SnakeConfiguration::Graphics::squareSize;
+		r.w = SnakeConfiguration::Graphics::squareSize;
+		r.h = SnakeConfiguration::Graphics::squareSize;
 		return r;
 	};
 
@@ -142,20 +156,18 @@ int main()
 
 	bool manualPlay = false;
 
-	int useSnakeBrainGeneration = replaySnakeBrains.size() - 1;
-
 	while (!close) {
 		if (waitingForRestart) {
-			if (SDL_GetTicks() > freezeUntil) {
+			if (SDL_GetTicks64() > freezeUntil) {
 				if (game != nullptr) {
 					delete game;
 				}
-				game = new Game(&replaySnakeBrains[useSnakeBrainGeneration], numSquares, numSquares, 150);
+				game = new Game(&replaySnakeBrains[useSnakeBrainGeneration], SnakeConfiguration::Game::numSquares, SnakeConfiguration::Game::numSquares, 150);
 				waitingForRestart = false;
 			}
 		}
 		else {
-			if (SDL_GetTicks() - lastTimeMs > 100) {
+			if (SDL_GetTicks64() - lastTimeMs > 100) {
 				bool roundDone = false;
 				measureSquares.clear();
 				if (manualPlay) {
@@ -167,9 +179,9 @@ int main()
 				snakeMove = SnakeMove::Forward;// Reset when it has been sent - now we wait for a new keypress
 				if (roundDone) {
 					waitingForRestart = true;
-					freezeUntil = SDL_GetTicks() + freezeTimeMs;
+					freezeUntil = SDL_GetTicks64() + freezeTimeMs;
 				}
-				lastTimeMs = SDL_GetTicks();
+				lastTimeMs = SDL_GetTicks64();
 			}
 		}
 
@@ -219,8 +231,8 @@ int main()
 
 		SDL_RenderClear(rend);
 		SDL_SetRenderDrawColor(rend, 130, 120, 120, 0);
-		for (int col = 0; col < numSquares; col++) {
-			for (int row = 0; row < numSquares; row++) {
+		for (int col = 0; col < SnakeConfiguration::Game::numSquares; col++) {
+			for (int row = 0; row < SnakeConfiguration::Game::numSquares; row++) {
 				auto r = boardPosToRenderRect(Vec2i(col, row));
 				SDL_RenderDrawRect(rend, &r);
 			}
@@ -228,10 +240,10 @@ int main()
 
 		if (game != nullptr) {
 			if (waitingForRestart) {
-				float t = 1.0f - (freezeUntil - SDL_GetTicks()) / freezeTimeMs;
-				int r = std::lerp(200, 0, t);
-				int g = std::lerp(20, 20, t);
-				int b = std::lerp(180, 180, t);
+				float t = 1.0f - (freezeUntil - SDL_GetTicks64()) / freezeTimeMs;
+				int r = static_cast<int>(std::lerp(200, 0, t));
+				int g = static_cast<int>(std::lerp(20, 20, t));
+				int b = static_cast<int>(std::lerp(180, 180, t));
 				SDL_SetRenderDrawColor(rend, r, g, b, 0);
 			}
 			else {
@@ -256,10 +268,10 @@ int main()
 			SDL_RenderSetScale(rend, 3.0f, 3.0f);
 			for (auto& fp : measureSquares.food) {
 				r = boardPosToRenderRect(fp);
-				r.x /= 3.0f;
-				r.y /= 3.0f;
-				r.w /= 2.6f;
-				r.h /= 2.5f;
+				r.x = static_cast<int>(r.x / 3.0f);
+				r.y = static_cast<int>(r.y / 3.0f);
+				r.w = static_cast<int>(r.w / 2.6f);
+				r.h = static_cast<int>(r.h / 2.5f);
 				SDL_RenderDrawRect(rend, &r);
 			}
 			SDL_RenderSetScale(rend, 1, 1);
@@ -272,7 +284,7 @@ int main()
 			SDL_Surface* text = nullptr;
 			SDL_Texture* text_texture;
 
-			text = TTF_RenderText_Solid(font, std::format("Gen: {} Pos: {} Score: {} Time left: {}", useSnakeBrainGeneration + 1, game->snake->position.toString(), game->score, game->timeLeft).c_str(), color);
+			text = TTF_RenderText_Solid(font, std::format("Gen: {} Pos: {} Score: {} Time left: {}", useSnakeBrainGeneration + 1, game->snake->position.toString(), game->score, game->timeLeft).c_str(), textColor);
 
 			if (text == nullptr) {
 				std::cout << "Failed to render text: " << TTF_GetError() << std::endl;

@@ -12,8 +12,6 @@ namespace ClSnake {
 	SnakeBrain crossOver(SnakeBrain* parent1, SnakeBrain* parent2) {
 		std::vector<SnakePerceptron> perceptrons;
 
-		// TODO: For know, we copy both weight and bias at once.
-		//	Should we split it into two separate steps?
 		for (int i = 0; i < parent1->perceptrons.size(); i++) {
 			SnakeBrain* useBrain = (getRandomInt(0, 1000) > 500) ? parent1 : parent2;
 			perceptrons.push_back(useBrain->perceptrons[i].clone());
@@ -25,7 +23,6 @@ namespace ClSnake {
 	// Probability for mutation, on range 0 - 1
 	void mutate(SnakeBrain* brain, float probability) {
 
-		// TODO: Should be mutate bias as well, as we do currently?
 		for (auto& p : brain->perceptrons) {
 			for (int i = 0; i < p.w.size(); i++) {
 				if (getRandomFloat(0.0f, 1.0f) < probability) {
@@ -65,6 +62,7 @@ namespace ClSnake {
 			auto genStartTime = SDL_GetTicks64();
 			std::vector<std::tuple<int, SnakeBrain*>> brainsWithScore(snakeBrains.size(), std::tuple<int, SnakeBrain*>(0, 0));
 
+			// Start with evaluation the fitness of each chromosome in the current generation
 			for (int brainOffset = 0; brainOffset < snakeBrains.size(); brainOffset += numThreads) {
 				std::vector<std::thread> threads;
 				for (int idxBrain = brainOffset; idxBrain < std::min(SnakeConfiguration::Evolution::numSnakeBrains, brainOffset + numThreads); idxBrain++) {

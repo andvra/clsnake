@@ -1,5 +1,6 @@
 #include <format>
 #include <thread>
+#include <iostream>
 #include <SDL2/SDL_timer.h>
 
 #include "evolution.h"

@@ -2,7 +2,6 @@
 
 #include <vector>
 #include <ctime>
-#include <boost/random.hpp>
 
 #include "utils.h"
 #include <map>

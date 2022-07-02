@@ -1,3 +1,4 @@
+#include <iostream>
 #include <SDL2/SDL.h> 
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_timer.h> 
@@ -10,6 +11,7 @@
 #include "game.h"
 #include "evolution.h"
 #include "config.h"
+
 
 // Needed for SDL2
 #undef main

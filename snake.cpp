@@ -1,3 +1,5 @@
+#include <iostream>
+#include <algorithm>
 #include "snake.h"
 
 float relu(float v) {

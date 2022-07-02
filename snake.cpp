@@ -64,9 +64,7 @@ void SnakeBrain::init(int tNumInputs, int tNumHiddenLayers, int tHiddenLayerSize
 			newPerceptrons.push_back(SnakePerceptron(layerSizes[idxLayerSize]));
 		}
 		perceptrons.insert(perceptrons.end(), newPerceptrons.begin(), newPerceptrons.end());
-		int a = 3;
 	}
-	int a = 3;
 }
 
 std::vector<float> SnakeBrain::think(const std::vector<float>& inputs) {
@@ -87,7 +85,7 @@ std::vector<float> SnakeBrain::think(const std::vector<float>& inputs) {
 			for (int idxActivation = 0; idxActivation < activations.size(); idxActivation++) {
 				activation += activations[idxActivation] * perceptron->w[idxActivation];
 			}
-			activation = sigmoid(activation + perceptron->b);
+			activation = relu(activation + perceptron->b);
 			newActivations.push_back(activation);
 		}
 		perceptronOffset += layerSizes[idxLayerSize];

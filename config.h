@@ -29,7 +29,7 @@ struct SnakeConfiguration {
 	struct Evolution {
 		static const int numSnakeBrains = 1500;
 		static constexpr float partOfParentsUsedForCrossover = 0.04f; // On range 0 (none) to 1 (all)
-		static constexpr float mutationProbability = 0.05f;	// On range 0 - 1
-		static const int numGenerations = 15;
+		static constexpr float mutationProbability = 0.01f;	// On range 0 - 1
+		static const int numGenerations = 50;
 	};
 };

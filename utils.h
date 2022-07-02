@@ -1,6 +1,9 @@
 #pragma once
 
 #include <string>
+#include <cmath>
+
+const float PI = std::acos(0.0f) * 2.0f;
 
 struct Vec2i {
 	int x;

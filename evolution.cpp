@@ -38,7 +38,6 @@ namespace ClSnake {
 		}
 	}
 
-	// Probability for mutation, on range 0 - 1
 	SnakeBrain makeChild(SnakeBrain* parent1, SnakeBrain* parent2, float mutationProbability) {
 		auto child = crossOver(parent1, parent2);
 		mutate(&child, mutationProbability);
@@ -54,6 +53,11 @@ namespace ClSnake {
 			snakeBrains.push_back(brain);
 		}
 
+		// hardware_concurrency will return 0 when not able to detect
+		const int numThreads = std::max(1u, std::thread::hardware_concurrency());
+
+		std::cout << std::format("Running evolution with {} threads\n-----\n", numThreads);
+
 		std::cout << std::format("Gen\tMax score\tTime (s)") << std::endl;
 		auto bestGenerationScore = 0;
 
@@ -61,16 +65,16 @@ namespace ClSnake {
 			auto genStartTime = SDL_GetTicks64();
 			std::vector<std::tuple<int, SnakeBrain*>> brainsWithScore(snakeBrains.size(), std::tuple<int, SnakeBrain*>(0, 0));
 
-			const int numThreads = 12;
 			for (int brainOffset = 0; brainOffset < snakeBrains.size(); brainOffset += numThreads) {
 				std::vector<std::thread> threads;
 				for (int idxBrain = brainOffset; idxBrain < std::min(SnakeConfiguration::Evolution::numSnakeBrains, brainOffset + numThreads); idxBrain++) {
 					SnakeBrain& brain = snakeBrains[idxBrain];
 					threads.push_back(std::thread([&brainsWithScore, &brain, idxBrain]() {
 						Game game(&brain, SnakeConfiguration::Game::numSquares, SnakeConfiguration::Game::numSquares);
-						auto score = game.play(&brain);
+						auto score = game.play();
 						brainsWithScore[idxBrain] = std::tuple<int, SnakeBrain*>(score, &brain);
 						}));
+
 				}
 				for (auto& t : threads) {
 					t.join();

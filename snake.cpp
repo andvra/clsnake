@@ -2,6 +2,10 @@
 #include <algorithm>
 #include "snake.h"
 
+float sigmoid(float v) {
+	return 1.0f / (1 + std::exp(-v));
+}
+
 float relu(float v) {
 	return std::max(0.0f, v);
 }
@@ -9,7 +13,6 @@ float relu(float v) {
 float linear(float v) {
 	return v;
 }
-
 
 SnakePerceptron::SnakePerceptron(int tNumWeights) {
 	w = getRandomFloats(-1.0f, 1.0f, tNumWeights);
@@ -75,8 +78,6 @@ std::vector<float> SnakeBrain::think(const std::vector<float>& inputs) {
 		activations.push_back(i);
 	}
 
-	// TODO: Should we use softmax for the output layer?
-
 	int perceptronOffset = 0;
 	for (int idxLayerSize = 1; idxLayerSize < layerSizes.size(); idxLayerSize++) {
 		std::vector<float> newActivations;
@@ -86,7 +87,7 @@ std::vector<float> SnakeBrain::think(const std::vector<float>& inputs) {
 			for (int idxActivation = 0; idxActivation < activations.size(); idxActivation++) {
 				activation += activations[idxActivation] * perceptron->w[idxActivation];
 			}
-			activation = relu(activation + perceptron->b);
+			activation = sigmoid(activation + perceptron->b);
 			newActivations.push_back(activation);
 		}
 		perceptronOffset += layerSizes[idxLayerSize];
@@ -99,8 +100,6 @@ std::vector<float> SnakeBrain::think(const std::vector<float>& inputs) {
 SnakeBrain SnakeBrain::clone() {
 	return SnakeBrain(perceptrons, numInputs, numHiddenLayers, hiddenLayerSize, outputLayerSize);
 }
-
-
 
 std::vector<float> SnakeBrain::processLayer(std::vector<float> inActivations, std::vector<float> weights, float (*activationFunction)(float)) {
 	std::vector<float> outActivations(weights.size(), 0.0f);
@@ -126,7 +125,6 @@ int SnakeBrain::layerIdToPerceptronId(int layerIdx, int localIdx) {
 
 	return ret;
 }
-
 
 Snake::Snake(SnakeBrain* tSnakeBrain, Vec2i tPos) {
 	position = tPos;

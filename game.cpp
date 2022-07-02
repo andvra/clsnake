@@ -87,7 +87,7 @@ Vec2i Game::getFoodPosition() {
 	return foodPosition;
 }
 
-int Game::play(SnakeBrain* snakeBrain) {
+int Game::play() {
 	auto done = false;
 
 	while (!done) {

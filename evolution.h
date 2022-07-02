@@ -5,6 +5,7 @@
 
 namespace ClSnake {
 
+	// Performs uniform crossover from two parents
 	SnakeBrain crossOver(SnakeBrain* parent1, SnakeBrain* parent2);
 	// Probability for mutation, on range 0 - 1
 	void mutate(SnakeBrain* brain, float probability);

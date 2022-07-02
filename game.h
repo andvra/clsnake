@@ -27,7 +27,7 @@ public:
 
 	// Returns the score
 	// This is used for fast play (eg. during training)
-	int play(SnakeBrain* snakeBrain);
+	int play();
 
 	Snake* snake = nullptr;
 	int score;

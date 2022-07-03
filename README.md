@@ -2,7 +2,27 @@
 
 This is an example of how genetic algorithms can be used to play a game, Snake. The snake brain is modelled as a feed-forward network, making decisions whether to turn or keep going forward.
 
-The algorithm can easily be adjusted to work in other applications.
+The algorithm can be easily adjusted to work in other applications.
+
+![img](./assets/game.png)
+
+## Prerequisites
+
+[SDL2](https://www.libsdl.org/) is used for rendering the game. 
+
+To install with vcpkg (NB make sure to install with your prefered triplet):
+
+```
+$ vcpkg install sdl2 sdl2-ttf sdl2-image
+```
+
+## Running
+
+Evolution starts when you run the application. The fitness and time consumed for each generation is displayed. Once evolution is done, you can follow how the snake performs during a game.
+
+**Controllers**
+
+By pressing **G**, a new game is started using a snake from the next generation.
 
 ## Thinking
 
@@ -16,7 +36,7 @@ We can interpret the weights and biases (floats) in a snake brain as genes, bein
 
 Heuristic for updating weights and biases on the chromosones are based on concepts from evolution. After each generation, the most fit chromosomes are selected for breeding. Crossover of two chromosomes results in a new chromosome with genes from both parents. Uniform crossover is used in this project, meaning that genes (weights/biases) are selected randomly from the parents at each position.
 
-<img src="./images/ga.png" width="200">
+<img src="./assets/ga.png" width="200">
 
 ## Graphics
 
@@ -26,12 +46,3 @@ SDL2 is used for rendering the game. The interst points that the snake can see (
 
 Parameters related to brain, game, graphics and evolution are managed from SnakeConfiguration. You can try changing rewards, penalties, brain size etc to speed up evolution and improve the results.
 
-## Prerequisites
-
-[SDL2](https://www.libsdl.org/) is used for rendering the game. 
-
-To install with vcpkg (NB make sure to install with your prefered triplet):
-
-```
-vcpkg install sdl2 sdl2-ttf sdl2-image
-```

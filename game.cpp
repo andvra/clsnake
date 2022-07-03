@@ -16,7 +16,7 @@ void MeasureSquares::clear() {
 Game::Game(SnakeBrain* brain, int tBoardWidth, int tBoardHeight, int roundTime) {
 	boardWidth = tBoardWidth;
 	boardHeight = tBoardHeight;
-	startingPosition = Vec2i(boardWidth / 2 - 6, boardHeight / 2 + 9);
+	startingPosition = Vec2i(boardWidth / 2, boardHeight / 2);
 	snake = new Snake(brain, startingPosition);
 	totalTimeLeft = maxTime;
 	timeLeft = roundTime;

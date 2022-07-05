@@ -6,8 +6,6 @@ struct SnakeConfiguration {
 		static const int timeUnitScore = 1;
 		static const int foodScore = 1500;
 		static const int foodTimeAdd = 100;
-		static const int crashPenalty = 500;
-		static const int timeOutPenalty = 500;
 		static const bool manualPlay = false;
 		static const int roundTime = 150;
 	};

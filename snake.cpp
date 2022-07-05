@@ -144,9 +144,9 @@ SnakeMove Snake::think(std::vector<float> input) {
 	// Order here doesn't matter; as long as the order is always the same,
 	//	the brain will evolve accordingly
 	switch (maxElementIndex) {
-	case 0:dir = SnakeMove::Forward; break;
+	case 0:dir = SnakeMove::Right; break;
 	case 1:dir = SnakeMove::Left; break;
-	case 2:dir = SnakeMove::Right; break;
+	case 2:dir = SnakeMove::Forward; break;
 	default: std::cout << "maxElementIndex out of bounds: " << maxElementIndex << std::endl;
 	}
 

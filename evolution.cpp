@@ -69,8 +69,9 @@ namespace ClSnake {
 					SnakeBrain& brain = snakeBrains[idxBrain];
 					threads.push_back(std::thread([&brainsWithScore, &brain, idxBrain]() {
 						Game game(&brain, SnakeConfiguration::Game::numSquares, SnakeConfiguration::Game::numSquares);
-						auto score = game.play();
-						brainsWithScore[idxBrain] = std::tuple<int, SnakeBrain*>(score, &brain);
+						game.play();
+						auto fitness = game.fitness();
+						brainsWithScore[idxBrain] = std::tuple<int, SnakeBrain*>(fitness, &brain);
 						}));
 
 				}

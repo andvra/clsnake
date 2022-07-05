@@ -213,7 +213,7 @@ int main()
 			SDL_Surface* text = nullptr;
 			SDL_Texture* text_texture;
 
-			text = TTF_RenderText_Solid(font, std::format("Gen: {} Pos: {} Score: {} Time left: {}", useSnakeBrainGeneration + 1, game->snake->position.toString(), game->score, game->timeLeft).c_str(), textColor);
+			text = TTF_RenderText_Solid(font, std::format("Gen: {} Pos: {} Score: {} Time left: {}", useSnakeBrainGeneration + 1, game->snake->position.toString(), game->fitness(), game->timeLeft).c_str(), textColor);
 
 			if (text == nullptr) {
 				std::cout << "Failed to render text: " << TTF_GetError() << std::endl;

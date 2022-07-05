@@ -62,21 +62,17 @@ bool Game::playStep(bool isManual, SnakeMove* snakeMove, MeasureSquares* measure
 
 	if (didCrash) {
 		snake->isAlive = false;
-		score -= SnakeConfiguration::Game::crashPenalty;
 		return false;
 	}
 	if (snake->position == foodPosition) {
 		snake->ateLastMove = true;
 		foodPosition = generateFoodPosition();
-		score += SnakeConfiguration::Game::foodScore;
 		timeLeft += SnakeConfiguration::Game::foodTimeAdd;
 	}
 	totalTimeLeft--;
 	timeLeft--;
-	score += SnakeConfiguration::Game::timeUnitScore;
 
 	if (totalTimeLeft <= 0 || timeLeft <= 0) {
-		score -= SnakeConfiguration::Game::timeOutPenalty;
 		return false;
 	}
 
@@ -87,14 +83,18 @@ Vec2i Game::getFoodPosition() {
 	return foodPosition;
 }
 
-int Game::play() {
+int Game::fitness() {
+	auto totalPlayTime = maxTime - totalTimeLeft;
+	return snake->body.size() * SnakeConfiguration::Game::foodScore + totalPlayTime * SnakeConfiguration::Game::timeUnitScore;
+}
+
+
+void Game::play() {
 	auto done = false;
 
 	while (!done) {
 		done = !playStep(false);
 	}
-
-	return score;
 }
 
 std::vector<float> Game::measure(Snake* snake, MeasureSquares* measureSquares) {
@@ -102,14 +102,14 @@ std::vector<float> Game::measure(Snake* snake, MeasureSquares* measureSquares) {
 	const int numMeasurements = 24;
 
 	std::vector<Vec2i> posDeltas = {
-		Vec2i(-1, -1),
-		Vec2i(-1, 0),
 		Vec2i(-1, 1),
-		Vec2i(0,  1),
-		Vec2i(1,  1),
-		Vec2i(1,  0),
+		Vec2i(-1, 0),
+		Vec2i(-1, -1),
+		Vec2i(0,  -1),
 		Vec2i(1,  -1),
-		Vec2i(0,  -1)
+		Vec2i(1,  0),
+		Vec2i(1,  1),
+		Vec2i(0,  1)
 	};
 
 	int indexOffset;
